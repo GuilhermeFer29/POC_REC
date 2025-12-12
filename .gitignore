@@ -1,0 +1,9 @@
+credencial.md
+.env
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+.env.local
+.env.*.local
+.env
