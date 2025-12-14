@@ -75,7 +75,7 @@ class EnriquecimentoService:
         """
         Importa todos os ingredientes do TheMealDB para o banco de dados.
         """
-        ingredientes_mealdb = await self.themealdb.list_themealdb_ingredients()
+        ingredientes_mealdb = await self.ingredientes_api.list_themealdb_ingredients()
         ingredientes_criados = []
 
         for ing in ingredientes_mealdb:
@@ -271,7 +271,7 @@ class EnriquecimentoService:
         adicionados = 0
 
         for ing in ingredientes:
-            if ing.calorias or ing.proteinas:
+            if ing.calorias or ing.proteinas or ing.descricao:
                 conteudo = self.gerar_conteudo_ingrediente_para_rag(ing)
                 self.rag_service.add_receita_content(
                     name=f"Ingrediente: {ing.nome_singular}",
@@ -283,3 +283,65 @@ class EnriquecimentoService:
             "total_ingredientes": len(ingredientes),
             "adicionados_ao_rag": adicionados,
         }
+
+    async def enriquecer_tudo_automatico(self, session: Session) -> dict:
+        """
+        Executa o enriquecimento completo em um único comando:
+        1. Importa todos os ingredientes do TheMealDB
+        2. Enriquece com dados nutricionais (USDA, Open Food Facts)
+        3. Adiciona ingredientes ao RAG
+        4. Popula RAG com receitas do TheMealDB
+        """
+        resultado = {
+            "etapa_1_importar": {},
+            "etapa_2_enriquecer": {},
+            "etapa_3_rag_ingredientes": {},
+            "etapa_4_rag_receitas": {},
+            "erros": [],
+        }
+
+        try:
+            importados = await self.importar_ingredientes_themealdb(session)
+            resultado["etapa_1_importar"] = {
+                "status": "ok",
+                "ingredientes_importados": len(importados),
+            }
+        except Exception as e:
+            resultado["etapa_1_importar"] = {"status": "erro", "mensagem": str(e)}
+            resultado["erros"].append(f"Etapa 1: {str(e)}")
+
+        try:
+            enriquecidos = await self.enriquecer_todos_ingredientes(session)
+            resultado["etapa_2_enriquecer"] = {
+                "status": "ok",
+                **enriquecidos,
+            }
+        except Exception as e:
+            resultado["etapa_2_enriquecer"] = {"status": "erro", "mensagem": str(e)}
+            resultado["erros"].append(f"Etapa 2: {str(e)}")
+
+        try:
+            rag_ing = await self.popular_rag_com_ingredientes(session)
+            resultado["etapa_3_rag_ingredientes"] = {
+                "status": "ok",
+                **rag_ing,
+            }
+        except Exception as e:
+            resultado["etapa_3_rag_ingredientes"] = {"status": "erro", "mensagem": str(e)}
+            resultado["erros"].append(f"Etapa 3: {str(e)}")
+
+        try:
+            rag_rec = await self.popular_rag_com_receitas_themealdb(
+                categorias=None,
+                limite_por_categoria=5,
+            )
+            resultado["etapa_4_rag_receitas"] = {
+                "status": "ok",
+                **rag_rec,
+            }
+        except Exception as e:
+            resultado["etapa_4_rag_receitas"] = {"status": "erro", "mensagem": str(e)}
+            resultado["erros"].append(f"Etapa 4: {str(e)}")
+
+        resultado["sucesso"] = len(resultado["erros"]) == 0
+        return resultado

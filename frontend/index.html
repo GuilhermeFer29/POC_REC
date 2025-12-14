@@ -230,10 +230,63 @@
                     <i class="fas fa-magic mr-2"></i>Enriquecimento Automático
                 </h2>
 
+                <!-- BOTÃO PRINCIPAL - ENRIQUECER TUDO -->
+                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg p-6 mb-6 text-white">
+                    <h3 class="text-lg font-bold mb-2">🚀 Enriquecimento Completo</h3>
+                    <p class="text-sm opacity-90 mb-4">
+                        Um clique para fazer tudo automaticamente:
+                        importar ~500 ingredientes, buscar dados nutricionais, baixar imagens e popular o RAG com receitas.
+                    </p>
+                    <button onclick="enriquecerTudo()" id="btn-enriquecer-tudo" class="bg-white text-purple-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-all">
+                        <i class="fas fa-rocket mr-2"></i>ENRIQUECER TUDO AUTOMATICAMENTE
+                    </button>
+                    
+                    <!-- Barra de Progresso -->
+                    <div id="enrich-progress" class="mt-4 hidden">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            <span id="enrich-progress-text" class="font-medium">Iniciando...</span>
+                        </div>
+                        
+                        <!-- Barra de progresso geral -->
+                        <div class="w-full bg-white/30 rounded-full h-3 mb-4">
+                            <div id="progress-bar" class="bg-white h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        
+                        <!-- Etapas -->
+                        <div class="grid grid-cols-4 gap-2 text-xs">
+                            <div id="step-1" class="text-center opacity-50">
+                                <div class="w-8 h-8 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-1">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <span>Importar</span>
+                            </div>
+                            <div id="step-2" class="text-center opacity-50">
+                                <div class="w-8 h-8 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-1">
+                                    <i class="fas fa-flask"></i>
+                                </div>
+                                <span>Nutrição</span>
+                            </div>
+                            <div id="step-3" class="text-center opacity-50">
+                                <div class="w-8 h-8 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-1">
+                                    <i class="fas fa-leaf"></i>
+                                </div>
+                                <span>RAG Ing.</span>
+                            </div>
+                            <div id="step-4" class="text-center opacity-50">
+                                <div class="w-8 h-8 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-1">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                <span>Receitas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Enriquecer Ingrediente -->
                     <div class="border rounded-lg p-4">
-                        <h3 class="font-medium text-gray-700 mb-2">Enriquecer Ingrediente</h3>
+                        <h3 class="font-medium text-gray-700 mb-2">Enriquecer Ingrediente Individual</h3>
                         <div class="flex gap-2 mb-2">
                             <input type="text" id="enrich-ing-nome" class="flex-1 border rounded-md px-3 py-2" placeholder="Nome do ingrediente (inglês)">
                             <button onclick="enriquecerIngrediente()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
@@ -243,51 +296,61 @@
                         <p class="text-xs text-gray-500">Busca dados no USDA, Open Food Facts e TheMealDB</p>
                     </div>
 
-                    <!-- Importar TheMealDB -->
+                    <!-- Status -->
                     <div class="border rounded-lg p-4">
-                        <h3 class="font-medium text-gray-700 mb-2">Importar Ingredientes TheMealDB</h3>
-                        <button onclick="importarTheMealDB()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">
-                            <i class="fas fa-download mr-1"></i>Importar Todos
+                        <h3 class="font-medium text-gray-700 mb-2">Status do Banco</h3>
+                        <button onclick="statusEnriquecimento()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 w-full mb-2">
+                            <i class="fas fa-chart-bar mr-1"></i>Atualizar Status
                         </button>
-                        <p class="text-xs text-gray-500 mt-1">Importa ~500 ingredientes com imagens</p>
+                        <div id="enrich-status" class="text-sm"></div>
                     </div>
+                </div>
 
-                    <!-- Popular RAG com Receitas -->
-                    <div class="border rounded-lg p-4">
-                        <h3 class="font-medium text-gray-700 mb-2">Popular RAG com Receitas</h3>
-                        <div class="flex gap-2 mb-2">
-                            <input type="text" id="rag-categoria" class="flex-1 border rounded-md px-3 py-2" placeholder="Categoria (ex: Dessert) ou vazio para todas">
-                            <input type="number" id="rag-limite" class="w-20 border rounded-md px-2 py-2" placeholder="10" value="10">
-                        </div>
-                        <button onclick="popularRAGReceitas()" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 w-full">
-                            <i class="fas fa-database mr-1"></i>Popular RAG
-                        </button>
-                    </div>
-
-                    <!-- Popular RAG por Ingrediente -->
-                    <div class="border rounded-lg p-4">
-                        <h3 class="font-medium text-gray-700 mb-2">Receitas por Ingrediente</h3>
-                        <div class="flex gap-2 mb-2">
-                            <input type="text" id="rag-ingrediente" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: chicken, beef...">
-                            <button onclick="popularRAGPorIngrediente()" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600">
-                                <i class="fas fa-search"></i>
+                <details class="mt-4 border rounded-lg">
+                    <summary class="p-3 cursor-pointer font-medium text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-cog mr-2"></i>Opções Avançadas
+                    </summary>
+                    <div class="p-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Importar TheMealDB -->
+                        <div class="border rounded-lg p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">Importar Ingredientes TheMealDB</h3>
+                            <button onclick="importarTheMealDB()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">
+                                <i class="fas fa-download mr-1"></i>Importar Todos
                             </button>
                         </div>
-                        <p class="text-xs text-gray-500">Busca receitas com esse ingrediente e adiciona ao RAG</p>
-                    </div>
-                </div>
 
-                <div class="border-t mt-4 pt-4">
-                    <div class="flex gap-2">
-                        <button onclick="statusEnriquecimento()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-                            <i class="fas fa-chart-bar mr-1"></i>Ver Status
-                        </button>
-                        <button onclick="popularRAGIngredientes()" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600">
-                            <i class="fas fa-leaf mr-1"></i>Adicionar Ingredientes ao RAG
-                        </button>
+                        <!-- Popular RAG com Receitas -->
+                        <div class="border rounded-lg p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">Popular RAG com Receitas</h3>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="rag-categoria" class="flex-1 border rounded-md px-3 py-2" placeholder="Categoria (ex: Dessert)">
+                                <input type="number" id="rag-limite" class="w-20 border rounded-md px-2 py-2" value="10">
+                            </div>
+                            <button onclick="popularRAGReceitas()" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 w-full">
+                                <i class="fas fa-database mr-1"></i>Popular RAG
+                            </button>
+                        </div>
+
+                        <!-- Popular RAG por Ingrediente -->
+                        <div class="border rounded-lg p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">Receitas por Ingrediente</h3>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="rag-ingrediente" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: chicken, beef...">
+                                <button onclick="popularRAGPorIngrediente()" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Adicionar Ingredientes ao RAG -->
+                        <div class="border rounded-lg p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">Ingredientes ao RAG</h3>
+                            <button onclick="popularRAGIngredientes()" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full">
+                                <i class="fas fa-leaf mr-1"></i>Adicionar ao RAG
+                            </button>
+                        </div>
                     </div>
-                    <div id="enrich-status" class="mt-2 text-sm"></div>
-                </div>
+                </details>
             </div>
 
             <!-- Logs Section -->
@@ -728,6 +791,105 @@
         }
 
         // Enriquecimento
+        function updateProgress(step, percent, text) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('enrich-progress-text');
+            
+            progressBar.style.width = percent + '%';
+            progressText.textContent = text;
+            
+            // Atualizar ícones das etapas
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step-${i}`);
+                const iconDiv = stepEl.querySelector('div');
+                if (i < step) {
+                    stepEl.classList.remove('opacity-50');
+                    iconDiv.classList.remove('bg-white/30');
+                    iconDiv.classList.add('bg-green-400');
+                    iconDiv.innerHTML = '<i class="fas fa-check"></i>';
+                } else if (i === step) {
+                    stepEl.classList.remove('opacity-50');
+                    iconDiv.classList.add('animate-pulse');
+                } else {
+                    stepEl.classList.add('opacity-50');
+                }
+            }
+        }
+
+        function resetProgress() {
+            const steps = ['download', 'flask', 'leaf', 'utensils'];
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step-${i}`);
+                const iconDiv = stepEl.querySelector('div');
+                stepEl.classList.add('opacity-50');
+                iconDiv.classList.remove('bg-green-400', 'animate-pulse');
+                iconDiv.classList.add('bg-white/30');
+                iconDiv.innerHTML = `<i class="fas fa-${steps[i-1]}"></i>`;
+            }
+            document.getElementById('progress-bar').style.width = '0%';
+        }
+
+        async function enriquecerTudo() {
+            const btn = document.getElementById('btn-enriquecer-tudo');
+            const progress = document.getElementById('enrich-progress');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            progress.classList.remove('hidden');
+            resetProgress();
+            
+            try {
+                log('🚀 Iniciando enriquecimento completo...');
+                
+                // Etapa 1: Importar ingredientes
+                updateProgress(1, 10, 'Etapa 1/4: Importando ingredientes do TheMealDB...');
+                log('📥 Importando ingredientes do TheMealDB...');
+                const res1 = await fetch(`${API_URL}/enriquecimento/importar-themealdb`, { method: 'POST' });
+                const data1 = await res1.json();
+                log(`✅ ${data1.ingredientes_importados || 0} ingredientes importados`, 'success');
+                updateProgress(2, 25, 'Etapa 1 concluída!');
+                
+                // Etapa 2: Enriquecer com nutrição (pular se não tiver USDA key)
+                updateProgress(2, 30, 'Etapa 2/4: Buscando dados nutricionais...');
+                log('🔬 Buscando dados nutricionais (USDA, Open Food Facts)...');
+                log('⏳ Esta etapa pode demorar alguns minutos...');
+                // Não vamos esperar o background task, apenas iniciar
+                await fetch(`${API_URL}/enriquecimento/enriquecer-todos`, { method: 'POST' });
+                log('✅ Enriquecimento nutricional iniciado em background', 'success');
+                updateProgress(3, 50, 'Etapa 2 iniciada em background');
+                
+                // Etapa 3: Adicionar ingredientes ao RAG
+                updateProgress(3, 55, 'Etapa 3/4: Adicionando ingredientes ao RAG...');
+                log('📚 Adicionando ingredientes à base de conhecimento...');
+                const res3 = await fetch(`${API_URL}/enriquecimento/rag/ingredientes`, { method: 'POST' });
+                const data3 = await res3.json();
+                log(`✅ ${data3.adicionados_ao_rag || 0} ingredientes adicionados ao RAG`, 'success');
+                updateProgress(4, 75, 'Etapa 3 concluída!');
+                
+                // Etapa 4: Popular RAG com receitas
+                updateProgress(4, 80, 'Etapa 4/4: Importando receitas para o RAG...');
+                log('🍳 Importando receitas do TheMealDB para o RAG...');
+                const res4 = await fetch(`${API_URL}/enriquecimento/rag/receitas-themealdb`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categorias: null, limite_por_categoria: 5 })
+                });
+                const data4 = await res4.json();
+                log('✅ Receitas sendo importadas em background', 'success');
+                
+                updateProgress(4, 100, '🎉 Enriquecimento completo!');
+                log('🎉 Enriquecimento completo finalizado!', 'success');
+                log('💡 Algumas tarefas continuam em background. Atualize o status em alguns minutos.');
+                
+                setTimeout(() => statusEnriquecimento(), 2000);
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+
         async function enriquecerIngrediente() {
             const nome = document.getElementById('enrich-ing-nome').value;
             if (!nome) {

@@ -1,10 +1,13 @@
 import asyncio
+import nest_asyncio
 from typing import Optional
 
 from agno.knowledge.knowledge import Knowledge
 
 from src.core.settings import Settings
 from src.core.knowledge import create_receitas_knowledge, create_fotografia_knowledge
+
+nest_asyncio.apply()
 
 
 class RAGService:
@@ -13,17 +16,25 @@ class RAGService:
         self.receitas_kb = create_receitas_knowledge(settings)
         self.fotografia_kb = create_fotografia_knowledge(settings)
 
+    def _run_async(self, coro):
+        """Executa coroutine de forma segura, mesmo dentro de contexto async."""
+        try:
+            loop = asyncio.get_running_loop()
+            return loop.run_until_complete(coro)
+        except RuntimeError:
+            return asyncio.run(coro)
+
     def add_receita_content(self, name: str, content: str, metadata: Optional[dict] = None):
-        asyncio.run(
+        self._run_async(
             self.receitas_kb.add_content_async(
                 name=name,
-                content=content,
+                text_content=content,
                 metadata=metadata or {"tipo": "receita"},
             )
         )
 
     def add_receita_from_url(self, name: str, url: str, metadata: Optional[dict] = None):
-        asyncio.run(
+        self._run_async(
             self.receitas_kb.add_content_async(
                 name=name,
                 url=url,
@@ -32,16 +43,16 @@ class RAGService:
         )
 
     def add_fotografia_content(self, name: str, content: str, metadata: Optional[dict] = None):
-        asyncio.run(
+        self._run_async(
             self.fotografia_kb.add_content_async(
                 name=name,
-                content=content,
+                text_content=content,
                 metadata=metadata or {"tipo": "fotografia"},
             )
         )
 
     def add_fotografia_from_url(self, name: str, url: str, metadata: Optional[dict] = None):
-        asyncio.run(
+        self._run_async(
             self.fotografia_kb.add_content_async(
                 name=name,
                 url=url,

@@ -147,6 +147,30 @@ async def popular_rag_ingredientes(session: Session = Depends(get_session)):
     }
 
 
+@router.post("/tudo")
+async def enriquecer_tudo(
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+):
+    """
+    🚀 ENRIQUECIMENTO COMPLETO AUTOMÁTICO
+    
+    Executa todas as etapas de enriquecimento em um único comando:
+    1. Importa ~500 ingredientes do TheMealDB (com imagens)
+    2. Enriquece com dados nutricionais (USDA, Open Food Facts)
+    3. Adiciona ingredientes ao RAG
+    4. Popula RAG com receitas do TheMealDB
+    
+    Este processo pode demorar vários minutos.
+    """
+    resultado = await enriquecimento_service.enriquecer_tudo_automatico(session)
+    return {
+        "status": "ok" if resultado["sucesso"] else "parcial",
+        "mensagem": "Enriquecimento completo executado!",
+        **resultado,
+    }
+
+
 @router.get("/status")
 async def status_enriquecimento(session: Session = Depends(get_session)):
     """

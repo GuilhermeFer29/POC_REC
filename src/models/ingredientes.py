@@ -1,6 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
+from sqlalchemy import Column, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -11,8 +12,8 @@ class IngredienteTable(SQLModel, table=True):
     nome_singular: str
     nome_plural: Optional[str] = None
     tipo_ingrediente: Optional[str] = None
-    imagem_ingrediente: Optional[str] = None
-    descricao: Optional[str] = None
+    imagem_ingrediente: Optional[str] = Field(default=None, sa_column=Column(Text))
+    descricao: Optional[str] = Field(default=None, sa_column=Column(Text))
     
     usda_fdc_id: Optional[int] = Field(default=None, description="ID no USDA FoodData Central")
     openfoodfacts_id: Optional[str] = Field(default=None, description="ID no Open Food Facts")
@@ -30,7 +31,7 @@ class IngredienteOut(BaseModel):
     nome_singular: str
     nome_plural: str | None = None
     tipo: str | None = None
-    imagem: HttpUrl | None = None
+    imagem: str | None = None
     descricao: str | None = None
     usda_fdc_id: int | None = None
     openfoodfacts_id: str | None = None
@@ -46,7 +47,7 @@ class IngredienteCreate(BaseModel):
     nome_singular: str
     nome_plural: str | None = None
     tipo_ingrediente: str | None = None
-    imagem_ingrediente: HttpUrl | None = None
+    imagem_ingrediente: str | None = None
     descricao: str | None = None
     usda_fdc_id: int | None = None
     openfoodfacts_id: str | None = None

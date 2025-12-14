@@ -7,7 +7,7 @@ import httpx
 import hashlib
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 
 class ImageDownloader:
@@ -69,8 +69,12 @@ class ImageDownloader:
             return None
 
         try:
+            parsed = urlparse(url)
+            encoded_path = quote(parsed.path, safe='/')
+            encoded_url = f"{parsed.scheme}://{parsed.netloc}{encoded_path}"
+            
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-                response = await client.get(url)
+                response = await client.get(encoded_url)
                 
                 if response.status_code != 200:
                     return None
