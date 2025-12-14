@@ -1,13 +1,29 @@
-from sqlmodel import create_engine, Session
+from typing import Generator
+
+from sqlmodel import Session, SQLModel, create_engine
 
 from .settings import Settings
 
+_engine = None
 
-def create_session_maker(settings: Settings):
-    engine = create_engine(settings.mysql_url, echo=False)
 
-    def get_session():
-        with Session(engine) as session:
-            yield session
+def init_engine(settings: Settings):
+    global _engine
+    if _engine is None:
+        _engine = create_engine(settings.mysql_url, echo=False)
+    return _engine
 
-    return get_session
+
+def get_session() -> Generator[Session, None, None]:
+    if _engine is None:
+        raise RuntimeError("Database engine not initialized.")
+    with Session(_engine) as session:
+        yield session
+
+
+def create_db_and_tables():
+    if _engine is None:
+        raise RuntimeError("Database engine not initialized.")
+    # Importa modelos para registrar metadados
+    from src.models import produtos, ingredientes, receitas  # noqa: F401
+    SQLModel.metadata.create_all(_engine)

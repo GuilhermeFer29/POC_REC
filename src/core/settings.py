@@ -8,4 +8,10 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     env: str = "dev"
 
+    gemini_api_key: str | None = None
+    gemini_model_text: str = "gemini-2.5-flash"
+    gemini_model_embed: str = "gemini-embedding-001"
+
+    agno_telemetry: bool = False
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
