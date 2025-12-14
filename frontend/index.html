@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POC Receitas - Teste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+            <i class="fas fa-utensils mr-2"></i>POC Receitas - Painel de Teste
+        </h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- RAG Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-database mr-2"></i>RAG - Base de Conhecimento
+                </h2>
+
+                <!-- Tabs -->
+                <div class="flex border-b mb-4">
+                    <button onclick="showRagTab('receitas')" id="tab-receitas" class="px-4 py-2 border-b-2 border-blue-500 text-blue-500 font-medium">Receitas</button>
+                    <button onclick="showRagTab('fotografia')" id="tab-fotografia" class="px-4 py-2 text-gray-500 hover:text-gray-700">Fotografia</button>
+                </div>
+
+                <!-- Add Content -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Conteúdo</label>
+                    <input type="text" id="rag-name" class="w-full border rounded-md px-3 py-2" placeholder="Ex: Livro de Receitas Brasileiras">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Conteúdo (texto ou URL)</label>
+                    <textarea id="rag-content" rows="4" class="w-full border rounded-md px-3 py-2" placeholder="Cole o texto ou URL aqui..."></textarea>
+                </div>
+
+                <div class="flex gap-2 mb-6">
+                    <button onclick="addRagContent()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        <i class="fas fa-plus mr-1"></i>Adicionar Texto
+                    </button>
+                    <button onclick="addRagUrl()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                        <i class="fas fa-link mr-1"></i>Adicionar URL
+                    </button>
+                </div>
+
+                <!-- Upload PDF/Arquivo RAG -->
+                <div class="border-t pt-4 mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Upload Arquivo (PDF, TXT)</label>
+                    <div class="flex gap-2">
+                        <input type="file" id="rag-file" accept=".pdf,.txt,.md" class="flex-1 border rounded-md px-2 py-1 text-sm">
+                        <button onclick="uploadRagFile()" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600">
+                            <i class="fas fa-file-upload mr-1"></i>Upload
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="border-t pt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar no RAG</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="rag-search" class="flex-1 border rounded-md px-3 py-2" placeholder="Digite sua busca...">
+                        <button onclick="searchRag()" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="rag-results" class="mt-4 text-sm text-gray-600"></div>
+            </div>
+
+            <!-- Produtos Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-box mr-2"></i>Produtos
+                </h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
+                    <input type="text" id="produto-nome" class="w-full border rounded-md px-3 py-2" placeholder="Ex: Leite Condensado">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <input type="text" id="produto-tipo" class="w-full border rounded-md px-3 py-2" placeholder="Ex: Laticínio">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea id="produto-descricao" rows="2" class="w-full border rounded-md px-3 py-2" placeholder="Descrição do produto..."></textarea>
+                </div>
+
+                <button onclick="criarProduto()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mb-4">
+                    <i class="fas fa-plus mr-1"></i>Criar Produto
+                </button>
+
+                <div class="border-t pt-4 mb-4">
+                    <h3 class="font-medium text-gray-700 mb-2">Upload Imagem do Produto</h3>
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm text-gray-600 mb-1">ID do Produto</label>
+                            <input type="number" id="upload-produto-id" class="w-full border rounded-md px-3 py-2" placeholder="ID">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm text-gray-600 mb-1">Imagem</label>
+                            <input type="file" id="upload-produto-file" accept="image/*" class="w-full border rounded-md px-2 py-1 text-sm">
+                        </div>
+                        <button onclick="uploadImagemProduto()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t pt-4">
+                    <h3 class="font-medium text-gray-700 mb-2">Produtos Cadastrados</h3>
+                    <button onclick="listarProdutos()" class="text-blue-500 hover:underline text-sm mb-2">
+                        <i class="fas fa-sync mr-1"></i>Atualizar Lista
+                    </button>
+                    <div id="produtos-lista" class="text-sm text-gray-600 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Receitas Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-book-open mr-2"></i>Gerar Receita
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ID do Produto</label>
+                        <input type="number" id="receita-produto-id" class="w-full border rounded-md px-3 py-2" placeholder="ID do produto">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrição Adicional (opcional)</label>
+                        <input type="text" id="receita-descricao" class="w-full border rounded-md px-3 py-2" placeholder="Ex: Receita para sobremesa de festa">
+                    </div>
+                </div>
+
+                <button onclick="gerarReceita()" class="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 mb-4">
+                    <i class="fas fa-magic mr-1"></i>Gerar Receita com Agentes
+                </button>
+
+                <div class="border-t pt-4">
+                    <h3 class="font-medium text-gray-700 mb-2">Consultar Receita</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input type="number" id="receita-id" class="border rounded-md px-3 py-2 w-32" placeholder="ID">
+                        <button onclick="consultarReceita()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                            <i class="fas fa-eye mr-1"></i>Ver Receita
+                        </button>
+                    </div>
+                </div>
+
+                <div id="receita-resultado" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                    <h3 class="font-semibold text-gray-700 mb-2">Resultado</h3>
+                    <div id="receita-content"></div>
+                </div>
+            </div>
+
+            <!-- APIs Externas Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-globe mr-2"></i>APIs de Ingredientes
+                </h2>
+
+                <!-- Tabs APIs -->
+                <div class="flex border-b mb-4 text-sm">
+                    <button onclick="showApiTab('usda')" id="api-tab-usda" class="px-3 py-2 border-b-2 border-blue-500 text-blue-500 font-medium">USDA</button>
+                    <button onclick="showApiTab('openfoodfacts')" id="api-tab-openfoodfacts" class="px-3 py-2 text-gray-500 hover:text-gray-700">Open Food Facts</button>
+                    <button onclick="showApiTab('themealdb')" id="api-tab-themealdb" class="px-3 py-2 text-gray-500 hover:text-gray-700">TheMealDB</button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Ingrediente</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="api-search" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: chicken, milk, tomato...">
+                        <button onclick="searchApi()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="api-results" class="text-sm text-gray-600 max-h-60 overflow-y-auto"></div>
+
+                <div class="border-t pt-4 mt-4">
+                    <h3 class="font-medium text-gray-700 mb-2">Enriquecer Ingrediente</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="enrich-nome" class="flex-1 border rounded-md px-3 py-2" placeholder="Nome do ingrediente">
+                        <button onclick="enrichIngredient()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                            <i class="fas fa-magic mr-1"></i>Enriquecer
+                        </button>
+                    </div>
+                    <div id="enrich-result" class="mt-2 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- TheMealDB Receitas -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-utensils mr-2"></i>TheMealDB Receitas
+                </h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Receitas</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="mealdb-search" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: pasta, chicken curry...">
+                        <button onclick="searchMealDB()" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                    <button onclick="getRandomMeal()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600">
+                        <i class="fas fa-random mr-1"></i>Receita Aleatória
+                    </button>
+                    <button onclick="listMealCategories()" class="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600">
+                        <i class="fas fa-list mr-1"></i>Categorias
+                    </button>
+                </div>
+
+                <div id="mealdb-results" class="text-sm text-gray-600 max-h-60 overflow-y-auto"></div>
+            </div>
+
+            <!-- Enriquecimento Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-magic mr-2"></i>Enriquecimento Automático
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Enriquecer Ingrediente -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">Enriquecer Ingrediente</h3>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="enrich-ing-nome" class="flex-1 border rounded-md px-3 py-2" placeholder="Nome do ingrediente (inglês)">
+                            <button onclick="enriquecerIngrediente()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500">Busca dados no USDA, Open Food Facts e TheMealDB</p>
+                    </div>
+
+                    <!-- Importar TheMealDB -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">Importar Ingredientes TheMealDB</h3>
+                        <button onclick="importarTheMealDB()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">
+                            <i class="fas fa-download mr-1"></i>Importar Todos
+                        </button>
+                        <p class="text-xs text-gray-500 mt-1">Importa ~500 ingredientes com imagens</p>
+                    </div>
+
+                    <!-- Popular RAG com Receitas -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">Popular RAG com Receitas</h3>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="rag-categoria" class="flex-1 border rounded-md px-3 py-2" placeholder="Categoria (ex: Dessert) ou vazio para todas">
+                            <input type="number" id="rag-limite" class="w-20 border rounded-md px-2 py-2" placeholder="10" value="10">
+                        </div>
+                        <button onclick="popularRAGReceitas()" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 w-full">
+                            <i class="fas fa-database mr-1"></i>Popular RAG
+                        </button>
+                    </div>
+
+                    <!-- Popular RAG por Ingrediente -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">Receitas por Ingrediente</h3>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="rag-ingrediente" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: chicken, beef...">
+                            <button onclick="popularRAGPorIngrediente()" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500">Busca receitas com esse ingrediente e adiciona ao RAG</p>
+                    </div>
+                </div>
+
+                <div class="border-t mt-4 pt-4">
+                    <div class="flex gap-2">
+                        <button onclick="statusEnriquecimento()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                            <i class="fas fa-chart-bar mr-1"></i>Ver Status
+                        </button>
+                        <button onclick="popularRAGIngredientes()" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600">
+                            <i class="fas fa-leaf mr-1"></i>Adicionar Ingredientes ao RAG
+                        </button>
+                    </div>
+                    <div id="enrich-status" class="mt-2 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-terminal mr-2"></i>Logs
+                </h2>
+                <div id="logs" class="bg-gray-900 text-green-400 p-4 rounded-md font-mono text-sm h-48 overflow-y-auto"></div>
+                <button onclick="clearLogs()" class="mt-2 text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-trash mr-1"></i>Limpar Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let currentRagTab = 'receitas';
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-blue-400';
+            logs.innerHTML += `<div class="${color}">[${time}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function showRagTab(tab) {
+            currentRagTab = tab;
+            document.getElementById('tab-receitas').className = tab === 'receitas' 
+                ? 'px-4 py-2 border-b-2 border-blue-500 text-blue-500 font-medium'
+                : 'px-4 py-2 text-gray-500 hover:text-gray-700';
+            document.getElementById('tab-fotografia').className = tab === 'fotografia'
+                ? 'px-4 py-2 border-b-2 border-blue-500 text-blue-500 font-medium'
+                : 'px-4 py-2 text-gray-500 hover:text-gray-700';
+            log(`Tab alterada para: ${tab}`);
+        }
+
+        async function addRagContent() {
+            const name = document.getElementById('rag-name').value;
+            const content = document.getElementById('rag-content').value;
+            if (!name || !content) {
+                log('Preencha nome e conteúdo', 'error');
+                return;
+            }
+            try {
+                log(`Adicionando conteúdo "${name}" ao RAG ${currentRagTab}...`);
+                const res = await fetch(`${API_URL}/rag/${currentRagTab}/content`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, content })
+                });
+                const data = await res.json();
+                log(data.message || JSON.stringify(data), 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function addRagUrl() {
+            const name = document.getElementById('rag-name').value;
+            const url = document.getElementById('rag-content').value;
+            if (!name || !url) {
+                log('Preencha nome e URL', 'error');
+                return;
+            }
+            try {
+                log(`Adicionando URL "${name}" ao RAG ${currentRagTab}...`);
+                const res = await fetch(`${API_URL}/rag/${currentRagTab}/url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url })
+                });
+                const data = await res.json();
+                log(data.message || JSON.stringify(data), 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function searchRag() {
+            const query = document.getElementById('rag-search').value;
+            if (!query) {
+                log('Digite uma busca', 'error');
+                return;
+            }
+            try {
+                log(`Buscando "${query}" no RAG ${currentRagTab}...`);
+                const res = await fetch(`${API_URL}/rag/${currentRagTab}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, num_documents: 5 })
+                });
+                const data = await res.json();
+                const resultsDiv = document.getElementById('rag-results');
+                if (data.results && data.results.length > 0) {
+                    resultsDiv.innerHTML = `<strong>Resultados:</strong><ul class="list-disc pl-5 mt-2">${data.results.map(r => `<li>${JSON.stringify(r).substring(0, 200)}...</li>`).join('')}</ul>`;
+                    log(`Encontrados ${data.results.length} resultados`, 'success');
+                } else {
+                    resultsDiv.innerHTML = '<em>Nenhum resultado encontrado</em>';
+                    log('Nenhum resultado encontrado');
+                }
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function criarProduto() {
+            const nome = document.getElementById('produto-nome').value;
+            const tipo = document.getElementById('produto-tipo').value;
+            const descricao = document.getElementById('produto-descricao').value;
+            if (!nome) {
+                log('Preencha o nome do produto', 'error');
+                return;
+            }
+            try {
+                log(`Criando produto "${nome}"...`);
+                const res = await fetch(`${API_URL}/produtos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        nome_produto: nome, 
+                        tipo_produto: tipo || null, 
+                        descricao: descricao || null 
+                    })
+                });
+                const data = await res.json();
+                log(`Produto criado com ID: ${data.id}`, 'success');
+                listarProdutos();
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function listarProdutos() {
+            try {
+                log('Listando produtos...');
+                const res = await fetch(`${API_URL}/produtos`);
+                const data = await res.json();
+                const lista = document.getElementById('produtos-lista');
+                if (data.length > 0) {
+                    lista.innerHTML = data.map(p => `<div class="p-2 border-b"><strong>ID ${p.id}:</strong> ${p.nome} (${p.tipo || 'sem tipo'})</div>`).join('');
+                    log(`${data.length} produtos encontrados`, 'success');
+                } else {
+                    lista.innerHTML = '<em>Nenhum produto cadastrado</em>';
+                    log('Nenhum produto cadastrado');
+                }
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function gerarReceita() {
+            const idProduto = document.getElementById('receita-produto-id').value;
+            const descricao = document.getElementById('receita-descricao').value;
+            if (!idProduto) {
+                log('Informe o ID do produto', 'error');
+                return;
+            }
+            try {
+                log(`Gerando receita para produto ID ${idProduto}...`);
+                log('Isso pode demorar alguns minutos (Chef → Fotógrafo → Diagramador)');
+                const res = await fetch(`${API_URL}/receitas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        id_produto: parseInt(idProduto), 
+                        descricao_cliente: descricao || null 
+                    })
+                });
+                const data = await res.json();
+                log(`Receita criada com ID: ${data.id}, Status: ${data.status}`, 'success');
+                document.getElementById('receita-id').value = data.id;
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function consultarReceita() {
+            const id = document.getElementById('receita-id').value;
+            if (!id) {
+                log('Informe o ID da receita', 'error');
+                return;
+            }
+            try {
+                log(`Consultando receita ID ${id}...`);
+                const res = await fetch(`${API_URL}/receitas/${id}`);
+                if (!res.ok) {
+                    log('Receita não encontrada', 'error');
+                    return;
+                }
+                const data = await res.json();
+                const resultDiv = document.getElementById('receita-resultado');
+                const contentDiv = document.getElementById('receita-content');
+                resultDiv.classList.remove('hidden');
+                
+                let html = `<p><strong>Status:</strong> <span class="px-2 py-1 rounded ${data.status === 'done' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${data.status}</span></p>`;
+                
+                if (data.json_ingredientes) {
+                    html += `<p class="mt-2"><strong>Ingredientes:</strong></p><pre class="bg-gray-100 p-2 rounded text-xs overflow-x-auto">${JSON.stringify(data.json_ingredientes, null, 2)}</pre>`;
+                }
+                if (data.json_modo_preparo) {
+                    html += `<p class="mt-2"><strong>Modo de Preparo:</strong></p><pre class="bg-gray-100 p-2 rounded text-xs overflow-x-auto">${JSON.stringify(data.json_modo_preparo, null, 2)}</pre>`;
+                }
+                if (data.content_html) {
+                    html += `<p class="mt-2"><strong>HTML Gerado:</strong></p><div class="border p-2 rounded mt-1">${data.content_html}</div>`;
+                }
+                
+                contentDiv.innerHTML = html;
+                log(`Receita ${id} carregada - Status: ${data.status}`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function uploadImagemProduto() {
+            const produtoId = document.getElementById('upload-produto-id').value;
+            const fileInput = document.getElementById('upload-produto-file');
+            if (!produtoId || !fileInput.files[0]) {
+                log('Informe ID do produto e selecione uma imagem', 'error');
+                return;
+            }
+            try {
+                log(`Fazendo upload da imagem do produto ${produtoId}...`);
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                const res = await fetch(`${API_URL}/upload/produto/${produtoId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                log(`Imagem salva: ${data.path}`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function uploadRagFile() {
+            const fileInput = document.getElementById('rag-file');
+            if (!fileInput.files[0]) {
+                log('Selecione um arquivo', 'error');
+                return;
+            }
+            try {
+                log(`Fazendo upload do arquivo para RAG ${currentRagTab}...`);
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                const res = await fetch(`${API_URL}/upload/rag/${currentRagTab}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                log(`Arquivo salvo: ${data.path}`, 'success');
+                log('Agora adicione o conteúdo ao RAG via texto ou URL do arquivo local');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function listarArquivos(tipo) {
+            try {
+                const res = await fetch(`${API_URL}/upload/listar/${tipo}`);
+                const data = await res.json();
+                log(`${data.arquivos.length} arquivos em ${tipo}`, 'success');
+                return data.arquivos;
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+                return [];
+            }
+        }
+
+        // APIs Externas
+        let currentApiTab = 'usda';
+
+        function showApiTab(tab) {
+            currentApiTab = tab;
+            ['usda', 'openfoodfacts', 'themealdb'].forEach(t => {
+                document.getElementById(`api-tab-${t}`).className = t === tab
+                    ? 'px-3 py-2 border-b-2 border-blue-500 text-blue-500 font-medium'
+                    : 'px-3 py-2 text-gray-500 hover:text-gray-700';
+            });
+            log(`API tab alterada para: ${tab}`);
+        }
+
+        async function searchApi() {
+            const query = document.getElementById('api-search').value;
+            if (!query) {
+                log('Digite um termo de busca', 'error');
+                return;
+            }
+            try {
+                log(`Buscando "${query}" na API ${currentApiTab}...`);
+                let url;
+                if (currentApiTab === 'usda') {
+                    url = `${API_URL}/ingredientes-api/usda/search?query=${encodeURIComponent(query)}`;
+                } else if (currentApiTab === 'openfoodfacts') {
+                    url = `${API_URL}/ingredientes-api/openfoodfacts/search?query=${encodeURIComponent(query)}`;
+                } else {
+                    url = `${API_URL}/ingredientes-api/themealdb/ingredients`;
+                }
+                const res = await fetch(url);
+                const data = await res.json();
+                const resultsDiv = document.getElementById('api-results');
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    let html = '<div class="space-y-2">';
+                    data.slice(0, 10).forEach(item => {
+                        if (currentApiTab === 'usda') {
+                            html += `<div class="p-2 border rounded bg-gray-50">
+                                <strong>${item.description}</strong><br>
+                                <span class="text-xs">FDC ID: ${item.fdc_id} | Cal: ${item.calories || '-'} | Prot: ${item.protein || '-'}g</span>
+                            </div>`;
+                        } else if (currentApiTab === 'openfoodfacts') {
+                            html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
+                                ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 object-cover rounded">` : ''}
+                                <div>
+                                    <strong>${item.product_name || 'Sem nome'}</strong><br>
+                                    <span class="text-xs">Code: ${item.code} | Cal: ${item.energy_kcal || '-'}</span>
+                                </div>
+                            </div>`;
+                        } else {
+                            html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
+                                ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 object-cover rounded">` : ''}
+                                <div><strong>${item.name}</strong></div>
+                            </div>`;
+                        }
+                    });
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                    log(`${data.length} resultados encontrados`, 'success');
+                } else if (data.detail) {
+                    resultsDiv.innerHTML = `<em class="text-red-500">${data.detail}</em>`;
+                    log(data.detail, 'error');
+                } else {
+                    resultsDiv.innerHTML = '<em>Nenhum resultado</em>';
+                    log('Nenhum resultado encontrado');
+                }
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function enrichIngredient() {
+            const nome = document.getElementById('enrich-nome').value;
+            if (!nome) {
+                log('Digite o nome do ingrediente', 'error');
+                return;
+            }
+            try {
+                log(`Enriquecendo ingrediente "${nome}"...`);
+                const res = await fetch(`${API_URL}/ingredientes-api/enrich`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome })
+                });
+                const data = await res.json();
+                const resultDiv = document.getElementById('enrich-result');
+                resultDiv.innerHTML = `
+                    <div class="p-2 bg-green-50 border border-green-200 rounded">
+                        <strong>${data.nome}</strong><br>
+                        <span class="text-xs">
+                            USDA: ${data.usda_fdc_id || '-'} | OFF: ${data.openfoodfacts_id || '-'}<br>
+                            Cal: ${data.calorias || '-'} | Prot: ${data.proteinas || '-'}g | Carb: ${data.carboidratos || '-'}g<br>
+                            ${data.imagem_url ? `<img src="${data.imagem_url}" class="w-16 h-16 mt-1 rounded">` : ''}
+                        </span>
+                    </div>
+                `;
+                log('Ingrediente enriquecido com sucesso', 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function searchMealDB() {
+            const query = document.getElementById('mealdb-search').value;
+            if (!query) {
+                log('Digite um termo de busca', 'error');
+                return;
+            }
+            try {
+                log(`Buscando receitas "${query}" no TheMealDB...`);
+                const res = await fetch(`${API_URL}/themealdb/search?query=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                displayMealDBResults(data);
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function getRandomMeal() {
+            try {
+                log('Buscando receita aleatória...');
+                const res = await fetch(`${API_URL}/themealdb/random`);
+                const data = await res.json();
+                displayMealDBResults([data]);
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function listMealCategories() {
+            try {
+                log('Listando categorias...');
+                const res = await fetch(`${API_URL}/themealdb/categories`);
+                const data = await res.json();
+                const resultsDiv = document.getElementById('mealdb-results');
+                resultsDiv.innerHTML = `<div class="flex flex-wrap gap-1">${data.map(c => `<span class="px-2 py-1 bg-gray-200 rounded text-xs">${c}</span>`).join('')}</div>`;
+                log(`${data.length} categorias encontradas`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        function displayMealDBResults(meals) {
+            const resultsDiv = document.getElementById('mealdb-results');
+            if (!meals || meals.length === 0) {
+                resultsDiv.innerHTML = '<em>Nenhuma receita encontrada</em>';
+                return;
+            }
+            let html = '<div class="space-y-2">';
+            meals.forEach(meal => {
+                html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
+                    ${meal.image_url ? `<img src="${meal.image_url}" class="w-16 h-16 object-cover rounded">` : ''}
+                    <div>
+                        <strong>${meal.name}</strong><br>
+                        <span class="text-xs">${meal.category || ''} | ${meal.area || ''}</span><br>
+                        <span class="text-xs text-gray-500">${meal.ingredients ? meal.ingredients.length + ' ingredientes' : ''}</span>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+            log(`${meals.length} receitas encontradas`, 'success');
+        }
+
+        // Enriquecimento
+        async function enriquecerIngrediente() {
+            const nome = document.getElementById('enrich-ing-nome').value;
+            if (!nome) {
+                log('Digite o nome do ingrediente', 'error');
+                return;
+            }
+            try {
+                log(`Enriquecendo ingrediente "${nome}"...`);
+                const res = await fetch(`${API_URL}/enriquecimento/ingrediente`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome })
+                });
+                const data = await res.json();
+                if (data.ingrediente) {
+                    log(`Ingrediente enriquecido: ID ${data.ingrediente.id}, Cal: ${data.ingrediente.calorias || '-'}`, 'success');
+                } else {
+                    log(JSON.stringify(data), 'success');
+                }
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function importarTheMealDB() {
+            try {
+                log('Importando ingredientes do TheMealDB...');
+                const res = await fetch(`${API_URL}/enriquecimento/importar-themealdb`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                log(`${data.ingredientes_importados} ingredientes importados`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function popularRAGReceitas() {
+            const categoria = document.getElementById('rag-categoria').value;
+            const limite = parseInt(document.getElementById('rag-limite').value) || 10;
+            try {
+                log(`Populando RAG com receitas (categoria: ${categoria || 'todas'}, limite: ${limite})...`);
+                const res = await fetch(`${API_URL}/enriquecimento/rag/receitas-themealdb`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        categorias: categoria ? [categoria] : null,
+                        limite_por_categoria: limite
+                    })
+                });
+                const data = await res.json();
+                log(data.message || 'Processamento iniciado em background', 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function popularRAGPorIngrediente() {
+            const ingrediente = document.getElementById('rag-ingrediente').value;
+            if (!ingrediente) {
+                log('Digite o nome do ingrediente', 'error');
+                return;
+            }
+            try {
+                log(`Buscando receitas com "${ingrediente}" para RAG...`);
+                const res = await fetch(`${API_URL}/enriquecimento/rag/receitas-por-ingrediente`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingrediente, limite: 5 })
+                });
+                const data = await res.json();
+                log(`${data.receitas_adicionadas} receitas adicionadas ao RAG`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function popularRAGIngredientes() {
+            try {
+                log('Adicionando ingredientes ao RAG...');
+                const res = await fetch(`${API_URL}/enriquecimento/rag/ingredientes`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                log(`${data.adicionados_ao_rag} ingredientes adicionados ao RAG`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        async function statusEnriquecimento() {
+            try {
+                const res = await fetch(`${API_URL}/enriquecimento/status`);
+                const data = await res.json();
+                const statusDiv = document.getElementById('enrich-status');
+                statusDiv.innerHTML = `
+                    <div class="p-2 bg-blue-50 border border-blue-200 rounded">
+                        <strong>Ingredientes:</strong> ${data.ingredientes.total} total |
+                        ${data.ingredientes.com_usda} com USDA |
+                        ${data.ingredientes.com_openfoodfacts} com OFF |
+                        ${data.ingredientes.com_dados_nutricionais} com nutrição
+                    </div>
+                `;
+                log('Status atualizado', 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
+        // Init
+        log('Frontend de teste iniciado');
+        log('Configure a API_URL se necessário (padrão: http://localhost:8000)');
+    </script>
+</body>
+</html>

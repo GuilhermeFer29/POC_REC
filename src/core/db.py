@@ -24,6 +24,5 @@ def get_session() -> Generator[Session, None, None]:
 def create_db_and_tables():
     if _engine is None:
         raise RuntimeError("Database engine not initialized.")
-    # Importa modelos para registrar metadados
-    from src.models import produtos, ingredientes, receitas  # noqa: F401
+    from src.models import produtos, ingredientes, receitas, imagens, tasks, vectors  # noqa: F401
     SQLModel.metadata.create_all(_engine)

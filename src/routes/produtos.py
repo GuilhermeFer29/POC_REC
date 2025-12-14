@@ -9,7 +9,7 @@ router = APIRouter(prefix="/produtos", tags=["produtos"])
 
 @router.post("", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED)
 def criar_produto(payload: ProdutoCreate, session: Session = Depends(get_session)):
-    produto = ProdutoClienteTable(**payload.dict())
+    produto = ProdutoClienteTable(**payload.model_dump())
     session.add(produto)
     session.commit()
     session.refresh(produto)

@@ -1,15 +1,9 @@
-from fastapi.testclient import TestClient
-
-from src.main import app
+import pytest
 
 
-client = TestClient(app)
-
-
-def test_health_ok():
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body.get("status") == "ok"
-    assert "db_url" in body
-    assert "qdrant_host" in body
+def test_health(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert "db_url" in response.json()
+    assert "qdrant_host" in response.json()

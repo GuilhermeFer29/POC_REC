@@ -6,11 +6,14 @@ class Settings(BaseSettings):
     mysql_url: str = "mysql+mysqlconnector://receitas:receitas@mysql:3306/receitas"
     qdrant_host: str = "qdrant"
     qdrant_port: int = 6333
+    qdrant_url: str = "http://qdrant:6333"
     env: str = "dev"
 
     gemini_api_key: str | None = None
     gemini_model_text: str = "gemini-2.5-flash"
     gemini_model_embed: str = "gemini-embedding-001"
+
+    usda_api_key: str | None = None
 
     agno_telemetry: bool = False
 
