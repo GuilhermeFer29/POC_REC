@@ -10,3 +10,4 @@ node_modules/
 # Dados persistentes (não versionar, mas manter localmente)
 data/
 media/
+docs/

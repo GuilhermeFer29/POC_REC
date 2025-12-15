@@ -1,4 +1,9 @@
+import base64
+import re
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from src.core.db import get_session
@@ -85,3 +90,62 @@ async def stream_receita(
         return
     await websocket.send_json({"status": receita.status, "receita_id": receita_id})
     await websocket.close()
+
+
+@router.get("/{receita_id}/download", response_class=HTMLResponse)
+def download_receita_html(receita_id: int, session: Session = Depends(get_session)):
+    """
+    Retorna o HTML da receita com imagens embutidas em base64.
+    Funciona offline quando salvo como arquivo.
+    """
+    receita = obter_receita_db(session, receita_id)
+    if not receita:
+        raise HTTPException(status_code=404, detail="Receita não encontrada")
+    
+    if not receita.content_html:
+        raise HTTPException(status_code=400, detail="Receita ainda não tem HTML gerado")
+    
+    html = receita.content_html
+    
+    # Encontrar todas as URLs de imagens no HTML
+    img_pattern = r'src=["\'](/media/receitas/\d+/step_\d+\.png)["\']'
+    matches = re.findall(img_pattern, html)
+    
+    # Substituir cada URL por base64
+    for img_path in matches:
+        # Remover a barra inicial para obter o caminho relativo
+        file_path = Path(img_path.lstrip('/'))
+        
+        if file_path.exists():
+            with open(file_path, 'rb') as f:
+                img_data = f.read()
+            b64_data = base64.b64encode(img_data).decode('utf-8')
+            data_uri = f'data:image/png;base64,{b64_data}'
+            html = html.replace(f'src="{img_path}"', f'src="{data_uri}"')
+            html = html.replace(f"src='{img_path}'", f"src='{data_uri}'")
+    
+    # Criar HTML completo
+    html_completo = f'''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receita #{receita_id}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f5f5; }}
+        .container {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+    </style>
+</head>
+<body>
+<div class="container">
+{html}
+</div>
+</body>
+</html>'''
+    
+    return HTMLResponse(
+        content=html_completo,
+        headers={
+            "Content-Disposition": f"attachment; filename=receita_{receita_id}.html"
+        }
+    )

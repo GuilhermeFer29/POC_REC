@@ -150,6 +150,9 @@
                         <button onclick="consultarReceita()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
                             <i class="fas fa-eye mr-1"></i>Ver Receita
                         </button>
+                        <button onclick="downloadReceitaHTML()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                            <i class="fas fa-download mr-1"></i>Download HTML
+                        </button>
                     </div>
                 </div>
 
@@ -157,71 +160,6 @@
                     <h3 class="font-semibold text-gray-700 mb-2">Resultado</h3>
                     <div id="receita-content"></div>
                 </div>
-            </div>
-
-            <!-- APIs Externas Section -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">
-                    <i class="fas fa-globe mr-2"></i>APIs de Ingredientes
-                </h2>
-
-                <!-- Tabs APIs -->
-                <div class="flex border-b mb-4 text-sm">
-                    <button onclick="showApiTab('usda')" id="api-tab-usda" class="px-3 py-2 border-b-2 border-blue-500 text-blue-500 font-medium">USDA</button>
-                    <button onclick="showApiTab('openfoodfacts')" id="api-tab-openfoodfacts" class="px-3 py-2 text-gray-500 hover:text-gray-700">Open Food Facts</button>
-                    <button onclick="showApiTab('themealdb')" id="api-tab-themealdb" class="px-3 py-2 text-gray-500 hover:text-gray-700">TheMealDB</button>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Ingrediente</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="api-search" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: chicken, milk, tomato...">
-                        <button onclick="searchApi()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="api-results" class="text-sm text-gray-600 max-h-60 overflow-y-auto"></div>
-
-                <div class="border-t pt-4 mt-4">
-                    <h3 class="font-medium text-gray-700 mb-2">Enriquecer Ingrediente</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="enrich-nome" class="flex-1 border rounded-md px-3 py-2" placeholder="Nome do ingrediente">
-                        <button onclick="enrichIngredient()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
-                            <i class="fas fa-magic mr-1"></i>Enriquecer
-                        </button>
-                    </div>
-                    <div id="enrich-result" class="mt-2 text-sm"></div>
-                </div>
-            </div>
-
-            <!-- TheMealDB Receitas -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">
-                    <i class="fas fa-utensils mr-2"></i>TheMealDB Receitas
-                </h2>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Receitas</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="mealdb-search" class="flex-1 border rounded-md px-3 py-2" placeholder="Ex: pasta, chicken curry...">
-                        <button onclick="searchMealDB()" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex gap-2 mb-4">
-                    <button onclick="getRandomMeal()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600">
-                        <i class="fas fa-random mr-1"></i>Receita Aleatória
-                    </button>
-                    <button onclick="listMealCategories()" class="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600">
-                        <i class="fas fa-list mr-1"></i>Categorias
-                    </button>
-                </div>
-
-                <div id="mealdb-results" class="text-sm text-gray-600 max-h-60 overflow-y-auto"></div>
             </div>
 
             <!-- Enriquecimento Section -->
@@ -409,6 +347,10 @@
                 });
                 const data = await res.json();
                 log(data.message || JSON.stringify(data), 'success');
+                
+                // Limpar campos após adicionar
+                document.getElementById('rag-name').value = '';
+                document.getElementById('rag-content').value = '';
             } catch (e) {
                 log(`Erro: ${e.message}`, 'error');
             }
@@ -430,6 +372,10 @@
                 });
                 const data = await res.json();
                 log(data.message || JSON.stringify(data), 'success');
+                
+                // Limpar campos após adicionar
+                document.getElementById('rag-name').value = '';
+                document.getElementById('rag-content').value = '';
             } catch (e) {
                 log(`Erro: ${e.message}`, 'error');
             }
@@ -483,6 +429,18 @@
                 });
                 const data = await res.json();
                 log(`Produto criado com ID: ${data.id}`, 'success');
+                
+                // Limpar campos após criar
+                document.getElementById('produto-nome').value = '';
+                document.getElementById('produto-tipo').value = '';
+                document.getElementById('produto-descricao').value = '';
+                
+                // Preencher ID automaticamente no campo de upload
+                document.getElementById('upload-produto-id').value = data.id;
+                
+                // Preencher ID automaticamente no campo de gerar receita
+                document.getElementById('receita-produto-id').value = data.id;
+                
                 listarProdutos();
             } catch (e) {
                 log(`Erro: ${e.message}`, 'error');
@@ -496,7 +454,18 @@
                 const data = await res.json();
                 const lista = document.getElementById('produtos-lista');
                 if (data.length > 0) {
-                    lista.innerHTML = data.map(p => `<div class="p-2 border-b"><strong>ID ${p.id}:</strong> ${p.nome} (${p.tipo || 'sem tipo'})</div>`).join('');
+                    lista.innerHTML = data.map(p => `
+                        <div class="p-2 border-b flex items-center gap-2">
+                            ${p.imagem ? `<img src="${API_URL}/${p.imagem}" class="w-10 h-10 object-cover rounded" onerror="this.style.display='none'">` : '<div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400"><i class="fas fa-image"></i></div>'}
+                            <div class="flex-1">
+                                <strong>ID ${p.id}:</strong> ${p.nome}
+                                <span class="text-xs text-gray-500">(${p.tipo || 'sem tipo'})</span>
+                            </div>
+                            <button onclick="selecionarProduto(${p.id})" class="text-blue-500 hover:text-blue-700 text-xs">
+                                <i class="fas fa-check"></i> Usar
+                            </button>
+                        </div>
+                    `).join('');
                     log(`${data.length} produtos encontrados`, 'success');
                 } else {
                     lista.innerHTML = '<em>Nenhum produto cadastrado</em>';
@@ -505,6 +474,12 @@
             } catch (e) {
                 log(`Erro: ${e.message}`, 'error');
             }
+        }
+        
+        function selecionarProduto(id) {
+            document.getElementById('upload-produto-id').value = id;
+            document.getElementById('receita-produto-id').value = id;
+            log(`Produto ID ${id} selecionado`, 'success');
         }
 
         async function gerarReceita() {
@@ -570,6 +545,27 @@
             }
         }
 
+        async function downloadReceitaHTML() {
+            const id = document.getElementById('receita-id').value;
+            if (!id) {
+                log('Informe o ID da receita para download', 'error');
+                return;
+            }
+            try {
+                log(`Baixando HTML da receita ${id} com imagens embutidas...`);
+                
+                // Usar o endpoint que retorna HTML com imagens em base64
+                const downloadUrl = `${API_URL}/receitas/${id}/download`;
+                
+                // Abrir em nova aba para download (o endpoint retorna com Content-Disposition: attachment)
+                window.open(downloadUrl, '_blank');
+                
+                log(`HTML da receita ${id} baixado com sucesso!`, 'success');
+            } catch (e) {
+                log(`Erro: ${e.message}`, 'error');
+            }
+        }
+
         async function uploadImagemProduto() {
             const produtoId = document.getElementById('upload-produto-id').value;
             const fileInput = document.getElementById('upload-produto-file');
@@ -587,6 +583,12 @@
                 });
                 const data = await res.json();
                 log(`Imagem salva: ${data.path}`, 'success');
+                
+                // Limpar campo de arquivo após upload
+                fileInput.value = '';
+                
+                // Atualizar lista de produtos para mostrar a imagem
+                listarProdutos();
             } catch (e) {
                 log(`Erro: ${e.message}`, 'error');
             }
@@ -624,170 +626,6 @@
                 log(`Erro: ${e.message}`, 'error');
                 return [];
             }
-        }
-
-        // APIs Externas
-        let currentApiTab = 'usda';
-
-        function showApiTab(tab) {
-            currentApiTab = tab;
-            ['usda', 'openfoodfacts', 'themealdb'].forEach(t => {
-                document.getElementById(`api-tab-${t}`).className = t === tab
-                    ? 'px-3 py-2 border-b-2 border-blue-500 text-blue-500 font-medium'
-                    : 'px-3 py-2 text-gray-500 hover:text-gray-700';
-            });
-            log(`API tab alterada para: ${tab}`);
-        }
-
-        async function searchApi() {
-            const query = document.getElementById('api-search').value;
-            if (!query) {
-                log('Digite um termo de busca', 'error');
-                return;
-            }
-            try {
-                log(`Buscando "${query}" na API ${currentApiTab}...`);
-                let url;
-                if (currentApiTab === 'usda') {
-                    url = `${API_URL}/ingredientes-api/usda/search?query=${encodeURIComponent(query)}`;
-                } else if (currentApiTab === 'openfoodfacts') {
-                    url = `${API_URL}/ingredientes-api/openfoodfacts/search?query=${encodeURIComponent(query)}`;
-                } else {
-                    url = `${API_URL}/ingredientes-api/themealdb/ingredients`;
-                }
-                const res = await fetch(url);
-                const data = await res.json();
-                const resultsDiv = document.getElementById('api-results');
-                
-                if (Array.isArray(data) && data.length > 0) {
-                    let html = '<div class="space-y-2">';
-                    data.slice(0, 10).forEach(item => {
-                        if (currentApiTab === 'usda') {
-                            html += `<div class="p-2 border rounded bg-gray-50">
-                                <strong>${item.description}</strong><br>
-                                <span class="text-xs">FDC ID: ${item.fdc_id} | Cal: ${item.calories || '-'} | Prot: ${item.protein || '-'}g</span>
-                            </div>`;
-                        } else if (currentApiTab === 'openfoodfacts') {
-                            html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
-                                ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 object-cover rounded">` : ''}
-                                <div>
-                                    <strong>${item.product_name || 'Sem nome'}</strong><br>
-                                    <span class="text-xs">Code: ${item.code} | Cal: ${item.energy_kcal || '-'}</span>
-                                </div>
-                            </div>`;
-                        } else {
-                            html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
-                                ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 object-cover rounded">` : ''}
-                                <div><strong>${item.name}</strong></div>
-                            </div>`;
-                        }
-                    });
-                    html += '</div>';
-                    resultsDiv.innerHTML = html;
-                    log(`${data.length} resultados encontrados`, 'success');
-                } else if (data.detail) {
-                    resultsDiv.innerHTML = `<em class="text-red-500">${data.detail}</em>`;
-                    log(data.detail, 'error');
-                } else {
-                    resultsDiv.innerHTML = '<em>Nenhum resultado</em>';
-                    log('Nenhum resultado encontrado');
-                }
-            } catch (e) {
-                log(`Erro: ${e.message}`, 'error');
-            }
-        }
-
-        async function enrichIngredient() {
-            const nome = document.getElementById('enrich-nome').value;
-            if (!nome) {
-                log('Digite o nome do ingrediente', 'error');
-                return;
-            }
-            try {
-                log(`Enriquecendo ingrediente "${nome}"...`);
-                const res = await fetch(`${API_URL}/ingredientes-api/enrich`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome })
-                });
-                const data = await res.json();
-                const resultDiv = document.getElementById('enrich-result');
-                resultDiv.innerHTML = `
-                    <div class="p-2 bg-green-50 border border-green-200 rounded">
-                        <strong>${data.nome}</strong><br>
-                        <span class="text-xs">
-                            USDA: ${data.usda_fdc_id || '-'} | OFF: ${data.openfoodfacts_id || '-'}<br>
-                            Cal: ${data.calorias || '-'} | Prot: ${data.proteinas || '-'}g | Carb: ${data.carboidratos || '-'}g<br>
-                            ${data.imagem_url ? `<img src="${data.imagem_url}" class="w-16 h-16 mt-1 rounded">` : ''}
-                        </span>
-                    </div>
-                `;
-                log('Ingrediente enriquecido com sucesso', 'success');
-            } catch (e) {
-                log(`Erro: ${e.message}`, 'error');
-            }
-        }
-
-        async function searchMealDB() {
-            const query = document.getElementById('mealdb-search').value;
-            if (!query) {
-                log('Digite um termo de busca', 'error');
-                return;
-            }
-            try {
-                log(`Buscando receitas "${query}" no TheMealDB...`);
-                const res = await fetch(`${API_URL}/themealdb/search?query=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                displayMealDBResults(data);
-            } catch (e) {
-                log(`Erro: ${e.message}`, 'error');
-            }
-        }
-
-        async function getRandomMeal() {
-            try {
-                log('Buscando receita aleatória...');
-                const res = await fetch(`${API_URL}/themealdb/random`);
-                const data = await res.json();
-                displayMealDBResults([data]);
-            } catch (e) {
-                log(`Erro: ${e.message}`, 'error');
-            }
-        }
-
-        async function listMealCategories() {
-            try {
-                log('Listando categorias...');
-                const res = await fetch(`${API_URL}/themealdb/categories`);
-                const data = await res.json();
-                const resultsDiv = document.getElementById('mealdb-results');
-                resultsDiv.innerHTML = `<div class="flex flex-wrap gap-1">${data.map(c => `<span class="px-2 py-1 bg-gray-200 rounded text-xs">${c}</span>`).join('')}</div>`;
-                log(`${data.length} categorias encontradas`, 'success');
-            } catch (e) {
-                log(`Erro: ${e.message}`, 'error');
-            }
-        }
-
-        function displayMealDBResults(meals) {
-            const resultsDiv = document.getElementById('mealdb-results');
-            if (!meals || meals.length === 0) {
-                resultsDiv.innerHTML = '<em>Nenhuma receita encontrada</em>';
-                return;
-            }
-            let html = '<div class="space-y-2">';
-            meals.forEach(meal => {
-                html += `<div class="p-2 border rounded bg-gray-50 flex gap-2">
-                    ${meal.image_url ? `<img src="${meal.image_url}" class="w-16 h-16 object-cover rounded">` : ''}
-                    <div>
-                        <strong>${meal.name}</strong><br>
-                        <span class="text-xs">${meal.category || ''} | ${meal.area || ''}</span><br>
-                        <span class="text-xs text-gray-500">${meal.ingredients ? meal.ingredients.length + ' ingredientes' : ''}</span>
-                    </div>
-                </div>`;
-            });
-            html += '</div>';
-            resultsDiv.innerHTML = html;
-            log(`${meals.length} receitas encontradas`, 'success');
         }
 
         // Enriquecimento

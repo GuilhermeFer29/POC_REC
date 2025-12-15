@@ -1,10 +1,19 @@
 import os
 import shutil
+import logging
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel
+from sqlmodel import Session
+
+from src.core.db import get_session
+from src.core.settings import Settings
+from src.models.produtos import ProdutoClienteTable
+from src.service.rag_service import RAGService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -28,6 +37,7 @@ class UploadResponse(BaseModel):
 async def upload_imagem_produto(
     produto_id: int,
     file: UploadFile = File(...),
+    session: Session = Depends(get_session),
 ):
     produto_dir = PRODUTOS_DIR / str(produto_id)
     produto_dir.mkdir(parents=True, exist_ok=True)
@@ -38,6 +48,13 @@ async def upload_imagem_produto(
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    # Atualizar o caminho da imagem no banco de dados
+    produto = session.get(ProdutoClienteTable, produto_id)
+    if produto:
+        produto.imagem_produto = str(file_path)
+        session.add(produto)
+        session.commit()
 
     return UploadResponse(
         filename=filename,
@@ -69,9 +86,21 @@ async def upload_imagem_passo(
     )
 
 
+def _process_pdf_background(file_path: str, tipo: str):
+    """Processa PDF em background e adiciona ao RAG."""
+    try:
+        settings = Settings()
+        rag_service = RAGService(settings)
+        result = rag_service.process_pdf_file(file_path, tipo)
+        logger.info(f"PDF processado em background: {result}")
+    except Exception as e:
+        logger.error(f"Erro ao processar PDF em background: {e}")
+
+
 @router.post("/rag/{tipo}", response_model=UploadResponse)
 async def upload_arquivo_rag(
     tipo: str,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
 ):
     if tipo not in ["receitas", "fotografia"]:
@@ -86,11 +115,48 @@ async def upload_arquivo_rag(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Se for PDF, processar automaticamente em background
+    if filename.lower().endswith('.pdf'):
+        logger.info(f"Iniciando processamento do PDF {filename} para RAG {tipo}")
+        background_tasks.add_task(_process_pdf_background, str(file_path), tipo)
+        message = f"Arquivo '{filename}' salvo e processamento iniciado para RAG {tipo}"
+    else:
+        message = f"Arquivo '{filename}' salvo para RAG {tipo}"
+
     return UploadResponse(
         filename=filename,
         path=str(file_path),
-        message=f"Arquivo '{filename}' salvo para RAG {tipo}",
+        message=message,
     )
+
+
+@router.post("/rag/{tipo}/processar")
+async def processar_pdfs_rag(
+    tipo: str,
+    background_tasks: BackgroundTasks,
+):
+    """Processa todos os PDFs existentes na pasta RAG do tipo especificado."""
+    if tipo not in ["receitas", "fotografia"]:
+        raise HTTPException(status_code=400, detail="Tipo deve ser 'receitas' ou 'fotografia'")
+
+    tipo_dir = RAG_DIR / tipo
+    if not tipo_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Pasta RAG/{tipo} não existe")
+
+    pdfs = list(tipo_dir.glob("*.pdf")) + list(tipo_dir.glob("*.PDF"))
+    
+    if not pdfs:
+        return {"message": f"Nenhum PDF encontrado em RAG/{tipo}", "count": 0}
+
+    for pdf_path in pdfs:
+        logger.info(f"Agendando processamento: {pdf_path.name}")
+        background_tasks.add_task(_process_pdf_background, str(pdf_path), tipo)
+
+    return {
+        "message": f"Processamento iniciado para {len(pdfs)} PDFs em RAG/{tipo}",
+        "count": len(pdfs),
+        "files": [p.name for p in pdfs],
+    }
 
 
 @router.get("/listar/{tipo}")

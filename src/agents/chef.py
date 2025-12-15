@@ -4,6 +4,7 @@ from agno.knowledge.knowledge import Knowledge
 
 from src.core.settings import Settings
 from src.core.knowledge import create_receitas_knowledge
+from src.core.agent_db import get_agent_db
 
 
 def create_chef_agent(settings: Settings, knowledge: Knowledge = None) -> Agent:
@@ -18,6 +19,10 @@ def create_chef_agent(settings: Settings, knowledge: Knowledge = None) -> Agent:
         ),
         knowledge=knowledge,
         search_knowledge=True,
+        debug_mode=True,
+        db=get_agent_db(),
+        add_history_to_context=True,
+        num_history_runs=5,
         description="Agente Receita (Chef): gera json_ingredientes e json_modo_preparo com apoio de RAG/Qdrant.",
         instructions=[
             "Você é um chef especialista em criar receitas.",

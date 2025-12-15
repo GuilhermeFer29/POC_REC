@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     env: str = "dev"
 
     gemini_api_key: str | None = None
+    google_api_key: str | None = None
     gemini_model_text: str = "gemini-2.5-flash"
     gemini_model_embed: str = "gemini-embedding-001"
 

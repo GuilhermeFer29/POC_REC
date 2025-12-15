@@ -5,6 +5,7 @@ from agno.knowledge.knowledge import Knowledge
 
 from src.core.settings import Settings
 from src.core.knowledge import create_fotografia_knowledge
+from src.core.agent_db import get_agent_db
 
 
 def create_fotografo_agent(settings: Settings, knowledge: Knowledge = None) -> Agent:
@@ -25,6 +26,10 @@ def create_fotografo_agent(settings: Settings, knowledge: Knowledge = None) -> A
         ],
         knowledge=knowledge,
         search_knowledge=True,
+        debug_mode=True,
+        db=get_agent_db(),
+        add_history_to_context=True,
+        num_history_runs=5,
         description="Agente Imagem (Fotógrafo): gera imagens passo a passo com Nano Banana, garantindo consistência visual.",
         instructions=[
             "Você é um fotógrafo especialista em fotografia de alimentos.",
