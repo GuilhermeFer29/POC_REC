@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+import time
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -8,8 +8,6 @@ from uuid import uuid4
 from sqlmodel import Session
 
 from src.core.settings import Settings
-
-logger = logging.getLogger(__name__)
 from src.core.knowledge import create_receitas_knowledge, create_fotografia_knowledge
 from src.agents.chef import create_chef_agent
 from src.agents.fotografo import create_fotografo_agent
@@ -17,6 +15,9 @@ from src.agents.diagramador import create_diagramador_agent
 from src.service.receitas_service import atualizar_status, obter_receita
 from src.models.receitas import ReceitaTable
 from src.models.produtos import ProdutoClienteTable
+from src.tools.image_generator import set_reference_image
+
+logger = logging.getLogger(__name__)
 
 
 class Orquestrador:
@@ -27,6 +28,26 @@ class Orquestrador:
         self.chef = create_chef_agent(settings, knowledge=self.receitas_kb)
         self.fotografo = create_fotografo_agent(settings, knowledge=self.fotografia_kb)
         self.diagramador = create_diagramador_agent(settings)
+
+    def _montar_dados_produto(self, produto: ProdutoClienteTable) -> dict:
+        """Monta os dados do produto de forma padronizada para todos os agentes."""
+        nome_completo = produto.nome_produto
+        if produto.marca:
+            nome_completo = f"{produto.nome_produto} {produto.marca}"
+        
+        imagem_url = ""
+        if produto.imagem_produto:
+            imagem_url = f"/{produto.imagem_produto}"
+        
+        return {
+            "nome": produto.nome_produto,
+            "marca": produto.marca or "",
+            "nome_completo": nome_completo,
+            "tipo": produto.tipo_produto or "",
+            "descricao": produto.descricao or "",
+            "imagem_url": imagem_url,
+            "tem_imagem": bool(produto.imagem_produto),
+        }
 
     def executar(
         self,
@@ -40,49 +61,113 @@ class Orquestrador:
         if not receita:
             return {"error": "Receita não encontrada", "status": "error"}
 
-        # Session ID compartilhado entre todos os agentes para manter contexto
         shared_session_id = f"receita_{receita_id}_{uuid4().hex[:8]}"
-        logger.info(f"[Orquestrador] Session ID compartilhado: {shared_session_id}")
+        dados_produto = self._montar_dados_produto(produto)
+        
+        logger.info(f"[Receita {receita_id}] Iniciando: {dados_produto['nome_completo']}")
 
         try:
-            logger.info(f"[Orquestrador] Iniciando receita {receita_id}")
+            # ETAPA 1: Chef gera receita
             atualizar_status(session, receita_id, "generating_recipe")
-            logger.info(f"[Orquestrador] Chamando Chef...")
-            resultado_chef = self._gerar_receita(produto, descricao_cliente, shared_session_id)
-            logger.info(f"[Orquestrador] Chef retornou: {len(resultado_chef.get('modo_preparo', []))} passos")
+            resultado_chef = self._gerar_receita(dados_produto, descricao_cliente, shared_session_id)
             self._salvar_receita(session, receita, resultado_chef)
+            logger.info(f"[Receita {receita_id}] Chef: {len(resultado_chef.get('modo_preparo', []))} passos")
 
+            # ETAPA 2: Fotógrafo gera imagens
             atualizar_status(session, receita_id, "generating_images")
-            logger.info(f"[Orquestrador] Chamando Fotógrafo para {len(resultado_chef.get('modo_preparo', []))} passos...")
             imagens = self._gerar_imagens(
-                receita_id, resultado_chef.get("modo_preparo", []), produto, refs_imagens, shared_session_id
+                receita_id, resultado_chef.get("modo_preparo", []), dados_produto, shared_session_id
             )
-            logger.info(f"[Orquestrador] Fotógrafo retornou {len(imagens)} imagens")
+            logger.info(f"[Receita {receita_id}] Fotógrafo: {len(imagens)} imagens")
 
+            # ETAPA 3: Diagramador gera HTML
             atualizar_status(session, receita_id, "generating_html")
-            logger.info(f"[Orquestrador] Chamando Diagramador...")
-            html = self._gerar_html(produto, resultado_chef, imagens, shared_session_id)
-            logger.info(f"[Orquestrador] Diagramador retornou HTML com {len(html)} chars")
+            html = self._gerar_html(dados_produto, resultado_chef, imagens, shared_session_id)
             self._salvar_html(session, receita, html)
 
             atualizar_status(session, receita_id, "done")
-            logger.info(f"[Orquestrador] Receita {receita_id} concluída!")
+            logger.info(f"[Receita {receita_id}] Concluída!")
             return {"status": "done", "receita_id": receita_id}
 
         except Exception as e:
-            logger.error(f"[Orquestrador] Erro na receita {receita_id}: {e}")
+            logger.error(f"[Receita {receita_id}] Erro: {e}")
             atualizar_status(session, receita_id, "error")
             return {"status": "error", "receita_id": receita_id, "error": str(e)}
 
-    def _gerar_receita(self, produto: ProdutoClienteTable, descricao_cliente: Optional[str], session_id: str) -> dict:
-        prompt = f"""Crie uma receita para o produto: {produto.nome_produto}.
-Tipo do produto: {produto.tipo_produto or 'não especificado'}.
-Descrição: {produto.descricao or descricao_cliente or 'não especificada'}.
+    def _gerar_receita(self, dados_produto: dict, descricao_cliente: Optional[str], session_id: str) -> dict:
+        """
+        Chama o agente Chef para gerar a receita.
+        
+        Placeholders passados ao Chef:
+        - {nome_completo}: Nome do produto + marca (ex: "Leite Condensado Moça")
+        - {nome}: Nome do produto (ex: "Leite Condensado")
+        - {marca}: Marca do produto (ex: "Moça")
+        - {tipo}: Tipo do produto (ex: "Laticínio")
+        - {descricao}: Descrição do produto ou do cliente
+        """
+        # Gerar variação aleatória para receitas diferentes
+        import random
+        estilos = [
+            "clássica tradicional brasileira",
+            "gourmet sofisticada",
+            "rápida e prática do dia a dia",
+            "fitness e saudável",
+            "comfort food aconchegante",
+            "internacional com toque brasileiro",
+            "para ocasiões especiais",
+            "econômica e rendosa",
+        ]
+        tecnicas = [
+            "grelhado", "assado no forno", "refogado", "cozido lentamente",
+            "selado na frigideira", "marinado", "defumado", "ao molho",
+            "empanado", "na pressão", "na churrasqueira", "sous vide",
+        ]
+        acompanhamentos = [
+            "arroz e farofa", "purê de batatas", "salada fresca", "legumes assados",
+            "massa", "risoto", "polenta", "batatas rústicas", "vinagrete",
+        ]
+        
+        estilo = random.choice(estilos)
+        tecnica = random.choice(tecnicas)
+        acompanhamento = random.choice(acompanhamentos)
+        
+        prompt = f"""Crie uma receita ÚNICA e CRIATIVA para o produto: {dados_produto['nome_completo']}.
 
-Retorne APENAS um JSON válido com:
-- "ingredientes": lista de objetos com "nome", "quantidade", "unidade"
-- "modo_preparo": lista de strings com os passos ordenados
-"""
+DADOS DO PRODUTO:
+- Nome: {dados_produto['nome']}
+- Marca: {dados_produto['marca'] or 'Não especificada'}
+- Tipo: {dados_produto['tipo'] or 'Não especificado'}
+- Descrição: {dados_produto['descricao'] or descricao_cliente or 'Não especificada'}
+
+ESTILO DA RECEITA (use como inspiração):
+- Estilo: {estilo}
+- Técnica sugerida: {tecnica}
+- Acompanhamento sugerido: {acompanhamento}
+
+IMPORTANTE - SEJA CRIATIVO:
+- NÃO repita receitas comuns ou óbvias
+- Use ingredientes variados e combinações interessantes
+- Explore temperos e ervas diferentes
+- Crie um nome criativo para a receita se desejar
+
+REGRAS OBRIGATÓRIAS:
+1. SEMPRE use o nome completo "{dados_produto['nome_completo']}" ao mencionar o produto principal
+2. Na lista de ingredientes, o produto principal deve aparecer como "{dados_produto['nome_completo']}"
+3. No modo de preparo, referencie sempre como "{dados_produto['nome_completo']}"
+
+FORMATO DE SAÍDA (JSON):
+{{
+  "ingredientes": [
+    {{"nome": "ingrediente", "quantidade": "X", "unidade": "unidade"}}
+  ],
+  "modo_preparo": [
+    "Passo 1: descrição...",
+    "Passo 2: descrição..."
+  ]
+}}
+
+Retorne APENAS o JSON, sem markdown ou explicações."""
+
         response = self.chef.run(prompt, session_id=session_id)
         try:
             content = getattr(response, "content", "")
@@ -105,40 +190,54 @@ Retorne APENAS um JSON válido com:
         self,
         receita_id: int,
         passos: list,
-        produto: ProdutoClienteTable,
-        refs_imagens: Optional[list] = None,
+        dados_produto: dict,
         session_id: str = None,
     ) -> list:
-        import time
-        
+        """
+        Gera imagens para cada passo usando o agente Fotógrafo.
+        Se o produto tem imagem cadastrada, configura como referência visual para image-to-image.
+        """
         imagens = []
         media_dir = Path(f"media/receitas/{receita_id}")
         media_dir.mkdir(parents=True, exist_ok=True)
 
-        for i, passo in enumerate(passos):
-            logger.info(f"[Fotógrafo] Gerando imagem {i+1}/{len(passos)} para: {passo[:50]}...")
-            prompt = f"""Fotografia profissional de alimento mostrando o passo: {passo}
-Produto: {produto.nome_produto}
-Mantenha consistência visual do produto em todas as imagens.
-Estilo: fotografia gastronômica profissional, iluminação natural."""
+        # NÃO usar imagem de referência para evitar colagens/sobreposições
+        # A imagem original do produto aparecerá no primeiro slide do carrossel HTML
+        set_reference_image(None)
 
-            response = None
+        total_passos = len(passos)
+        for i, passo in enumerate(passos):
+            passo_num = i + 1
+            
+            # Prompt para o agente Fotógrafo
+            prompt = f"""Gere uma fotografia gastronômica profissional para o passo {passo_num} de {total_passos}:
+
+PASSO: {passo}
+
+PRODUTO: {dados_produto['nome_completo']}
+
+REGRAS OBRIGATÓRIAS:
+- NÃO mostre embalagens, rótulos ou etiquetas - mostre APENAS o alimento sendo preparado
+- NÃO faça colagem ou sobreposição de imagens
+- Fotografia realista do processo de preparo
+- Iluminação natural e suave
+- Ângulo de 45 graus ou overhead
+- Fundo neutro e elegante (tábua de madeira, mármore ou bancada)
+- Mantenha consistência visual entre todas as imagens"""
+
+            image_path = f"media/receitas/{receita_id}/step_{i}.png"
+            
+            # Tentar gerar imagem com retries
             max_retries = 3
+            response = None
             for attempt in range(max_retries):
                 try:
                     response = self.fotografo.run(prompt, session_id=session_id)
-                    logger.info(f"[Fotógrafo] Imagem {i+1} gerada com sucesso")
                     break
                 except Exception as e:
-                    logger.error(f"[Fotógrafo] Tentativa {attempt+1}/{max_retries} falhou: {e}")
+                    logger.warning(f"[Imagem {passo_num}] Tentativa {attempt+1} falhou: {e}")
                     if attempt < max_retries - 1:
-                        wait_time = (attempt + 1) * 5
-                        logger.info(f"[Fotógrafo] Aguardando {wait_time}s antes de tentar novamente...")
-                        time.sleep(wait_time)
-                    else:
-                        logger.error(f"[Fotógrafo] Todas as tentativas falharam para imagem {i+1}")
-            
-            image_path = f"media/receitas/{receita_id}/step_{i}.png"
+                        time.sleep((attempt + 1) * 3)
             
             # Salvar imagem no disco se foi gerada
             if response and hasattr(response, 'images') and response.images:
@@ -146,39 +245,90 @@ Estilo: fotografia gastronômica profissional, iluminação natural."""
                     if hasattr(img, 'content') and img.content:
                         with open(image_path, 'wb') as f:
                             f.write(img.content)
-                        logger.info(f"[Fotógrafo] Imagem salva em: {image_path}")
                         break
             
             imagens.append({
                 "step_index": i,
+                "passo_num": passo_num,
+                "passo_descricao": passo,
                 "url": image_path,
-                "content": getattr(response, "content", "") if response else "",
             })
+        
+        # Limpar referência após terminar
+        set_reference_image(None)
         return imagens
 
-    def _gerar_html(self, produto: ProdutoClienteTable, resultado_chef: dict, imagens: list, session_id: str = None) -> str:
-        """Coordena a geração de HTML pelo agente Diagramador."""
+    def _gerar_html(self, dados_produto: dict, resultado_chef: dict, imagens: list, session_id: str = None) -> str:
+        """
+        Chama o agente Diagramador para gerar o HTML da receita.
+        
+        Placeholders passados ao Diagramador:
+        - {nome_completo}: Nome do produto + marca
+        - {nome}: Nome do produto
+        - {marca}: Marca do produto
+        - {imagem_url}: URL da imagem do produto (primeiro slide)
+        - {tem_imagem}: Se o produto tem imagem cadastrada
+        - {imagens_passos}: Lista de URLs das imagens dos passos
+        - {ingredientes}: Lista de ingredientes com quantidade e unidade
+        - {passos}: Lista de passos do modo de preparo
+        """
         ingredientes = resultado_chef.get("ingredientes", [])
         passos = resultado_chef.get("modo_preparo", [])
         
-        # Usar caminhos absolutos do servidor
-        imagens_urls = [f"/{img.get('url', '')}" for img in imagens]
+        # Montar lista de imagens dos passos com URLs (conversão base64 feita pelo frontend)
+        imagens_passos = []
+        for img in imagens:
+            img_url = f"/{img.get('url', '')}"
+            imagens_passos.append({
+                "url": img_url,
+                "passo_num": img.get('passo_num', img.get('step_index', 0) + 1),
+                "descricao": img.get('passo_descricao', passos[img.get('step_index', 0)] if img.get('step_index', 0) < len(passos) else ''),
+            })
 
-        # Montar prompt com os dados para o Diagramador
-        prompt = f"""Gere o HTML da receita com os seguintes dados:
+        # Montar prompt estruturado para o Diagramador
+        prompt = f"""Gere uma página HTML completa para a receita com os seguintes dados:
 
-PRODUTO: {produto.nome_produto}
+═══════════════════════════════════════════════════════════════
+DADOS DO PRODUTO
+═══════════════════════════════════════════════════════════════
+Nome Completo: {dados_produto['nome_completo']}
+Nome: {dados_produto['nome']}
+Marca: {dados_produto['marca'] or 'Não especificada'}
+Tipo: {dados_produto['tipo'] or 'Não especificado'}
 
-IMAGENS (URLs para o carrossel):
-{imagens_urls}
+═══════════════════════════════════════════════════════════════
+IMAGENS PARA O CARROSSEL
+═══════════════════════════════════════════════════════════════
+SLIDE 1 (IMAGEM DO PRODUTO - OBRIGATÓRIO SE DISPONÍVEL):
+URL: {dados_produto['imagem_url'] if dados_produto['tem_imagem'] else 'NÃO DISPONÍVEL'}
+Legenda: "Produto: {dados_produto['nome_completo']}"
 
-INGREDIENTES:
-{ingredientes}
+SLIDES DOS PASSOS (em ordem):
+{json.dumps(imagens_passos, indent=2, ensure_ascii=False)}
 
-MODO DE PREPARO:
-{passos}
+═══════════════════════════════════════════════════════════════
+INGREDIENTES
+═══════════════════════════════════════════════════════════════
+{json.dumps(ingredientes, indent=2, ensure_ascii=False)}
 
-Gere o HTML completo com carrossel funcional seguindo suas instruções."""
+═══════════════════════════════════════════════════════════════
+MODO DE PREPARO
+═══════════════════════════════════════════════════════════════
+{json.dumps(passos, indent=2, ensure_ascii=False)}
+
+═══════════════════════════════════════════════════════════════
+INSTRUÇÕES DE GERAÇÃO
+═══════════════════════════════════════════════════════════════
+1. TÍTULO: "Receita de {dados_produto['nome_completo']}"
+2. CARROSSEL:
+   - Se tem imagem do produto ({dados_produto['tem_imagem']}), ela é o PRIMEIRO slide
+   - Cada passo tem sua imagem como slide seguinte
+   - Use CSS puro (inputs radio + labels) - SEM JavaScript
+3. INGREDIENTES: Lista formatada com quantidade e unidade
+4. MODO DE PREPARO: Lista numerada com os passos
+5. DESIGN: Moderno, cores verdes (#48bb78), responsivo
+
+Retorne APENAS o HTML completo, sem markdown ou explicações."""
 
         response = self.diagramador.run(prompt, session_id=session_id)
         content = getattr(response, "content", "")

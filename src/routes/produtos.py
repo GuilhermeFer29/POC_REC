@@ -17,6 +17,7 @@ def criar_produto(payload: ProdutoCreate, session: Session = Depends(get_session
         id=produto.id_produto,
         nome=produto.nome_produto,
         tipo=produto.tipo_produto,
+        marca=produto.marca,
         imagem=produto.imagem_produto,
         descricao=produto.descricao,
     )
@@ -30,6 +31,7 @@ def listar_produtos(session: Session = Depends(get_session)):
             id=p.id_produto,
             nome=p.nome_produto,
             tipo=p.tipo_produto,
+            marca=p.marca,
             imagem=p.imagem_produto,
             descricao=p.descricao,
         )
@@ -46,6 +48,7 @@ def obter_produto(produto_id: int, session: Session = Depends(get_session)):
         id=produto.id_produto,
         nome=produto.nome_produto,
         tipo=produto.tipo_produto,
+        marca=produto.marca,
         imagem=produto.imagem_produto,
         descricao=produto.descricao,
     )

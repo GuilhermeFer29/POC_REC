@@ -7,12 +7,17 @@ from fastapi.staticfiles import StaticFiles
 from uuid import uuid4
 from pathlib import Path
 
-# Configurar logging para ver logs do Agno e da aplicação
+# Configurar logging - INFO para produção
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
+# Silenciar logs verbosos de bibliotecas externas
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("agno").setLevel(logging.WARNING)
+logging.getLogger("google_genai").setLevel(logging.ERROR)
 
 from .core.settings import Settings
 from .core.db import init_engine, create_db_and_tables

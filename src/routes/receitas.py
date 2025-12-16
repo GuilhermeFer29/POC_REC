@@ -107,20 +107,32 @@ def download_receita_html(receita_id: int, session: Session = Depends(get_sessio
     
     html = receita.content_html
     
-    # Encontrar todas as URLs de imagens no HTML
-    img_pattern = r'src=["\'](/media/receitas/\d+/step_\d+\.png)["\']'
-    matches = re.findall(img_pattern, html)
+    # Encontrar todas as URLs de imagens no HTML (receitas e produtos)
+    img_patterns = [
+        r'src=["\'](/media/receitas/\d+/step_\d+\.png)["\']',
+        r'src=["\'](/media/produtos/\d+/[^"\']+)["\']',
+    ]
+    
+    all_matches = []
+    for pattern in img_patterns:
+        all_matches.extend(re.findall(pattern, html))
     
     # Substituir cada URL por base64
-    for img_path in matches:
+    for img_path in all_matches:
         # Remover a barra inicial para obter o caminho relativo
         file_path = Path(img_path.lstrip('/'))
         
         if file_path.exists():
             with open(file_path, 'rb') as f:
                 img_data = f.read()
+            
+            # Detectar tipo MIME
+            suffix = file_path.suffix.lower()
+            mime_types = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp'}
+            mime_type = mime_types.get(suffix, 'image/png')
+            
             b64_data = base64.b64encode(img_data).decode('utf-8')
-            data_uri = f'data:image/png;base64,{b64_data}'
+            data_uri = f'data:{mime_type};base64,{b64_data}'
             html = html.replace(f'src="{img_path}"', f'src="{data_uri}"')
             html = html.replace(f"src='{img_path}'", f"src='{data_uri}'")
     

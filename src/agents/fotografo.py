@@ -1,11 +1,10 @@
 from agno.agent import Agent
 from agno.models.google import Gemini
-from agno.tools.nano_banana import NanoBananaTools
 from agno.knowledge.knowledge import Knowledge
 
 from src.core.settings import Settings
 from src.core.knowledge import create_fotografia_knowledge
-from src.core.agent_db import get_agent_db
+from src.tools.image_generator import ImageGeneratorTools
 
 
 def create_fotografo_agent(settings: Settings, knowledge: Knowledge = None) -> Agent:
@@ -19,27 +18,37 @@ def create_fotografo_agent(settings: Settings, knowledge: Knowledge = None) -> A
             api_key=settings.gemini_api_key,
         ),
         tools=[
-            NanoBananaTools(
+            ImageGeneratorTools(
                 api_key=settings.gemini_api_key,
                 aspect_ratio="4:3",
             )
         ],
         knowledge=knowledge,
         search_knowledge=True,
-        debug_mode=True,
-        db=get_agent_db(),
-        add_history_to_context=True,
-        num_history_runs=5,
-        description="Agente Imagem (Fotógrafo): gera imagens passo a passo com Nano Banana, garantindo consistência visual.",
+        debug_mode=False,
+        description="Agente Imagem (Fotógrafo): gera imagens passo a passo com suporte a image-to-image para consistência visual.",
         instructions=[
-            "Você é um fotógrafo especialista em fotografia de alimentos.",
-            "Receba json_modo_preparo (passos), refs de imagem (produto + ingredientes + identidade do cliente).",
-            "Use a função create_image para gerar uma imagem para cada passo.",
-            "Consulte RAG com livros de fotografia para estética/composição.",
-            "Mantenha consistência do produto em todas as etapas.",
-            "Salve imagens em media/receitas/{id_receita}/step_{step_index}.png.",
-            "Registre seeds/params para reprodutibilidade.",
-            "Permita reprocessar passo isolado se necessário.",
-            "Emita eventos WebSocket ao concluir cada passo.",
+            "Você é um fotógrafo profissional especialista em fotografia gastronômica.",
+            "",
+            "## REGRAS DE CONSISTÊNCIA VISUAL:",
+            "1. Se uma IMAGEM DE REFERÊNCIA do produto estiver configurada, ela será usada automaticamente",
+            "   para manter a identidade visual (cores, embalagem, ambiente) em todas as imagens geradas.",
+            "",
+            "2. TODAS as imagens devem seguir o mesmo estilo:",
+            "   - Mesma iluminação (natural, suave)",
+            "   - Mesmo ângulo de câmera (45° ou overhead)",
+            "   - Mesma paleta de cores",
+            "   - Mesmo cenário/ambiente",
+            "",
+            "## TÉCNICAS DE FOTOGRAFIA:",
+            "- Consulte o RAG para técnicas de food photography",
+            "- Use composição profissional (regra dos terços)",
+            "- Destaque o produto principal em cada passo",
+            "- Mantenha fundo limpo e elegante",
+            "",
+            "## GERAÇÃO DE IMAGENS:",
+            "- Use create_image para gerar cada imagem",
+            "- Descreva detalhadamente o passo sendo fotografado",
+            "- Inclua o produto/marca na descrição quando relevante",
         ],
     )
